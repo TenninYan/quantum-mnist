@@ -1,5 +1,10 @@
-import itertools
+'''
+utility for computing density matrix diagonal
+(measurement probabilities) for a subset of qubits
+given the probabilities for a larger set of qubits
+'''
 
+import itertools
 
 
 def B(N):
