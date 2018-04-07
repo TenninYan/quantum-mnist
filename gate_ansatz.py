@@ -9,7 +9,7 @@ import pyquil.paulis as paulis
 from numpy import pi, linspace
 from numpy.random import rand
 
-N_qubit = 8
+N_qubit = 16
 N_unit_theta = 15
 
 def input_gates(data):
@@ -34,8 +34,8 @@ def unit_gate(theta, target = (0,1)):
        
     # 2 qubit canonical gate
     p += Program(CNOT(target[0],target[1]))
-    p += Program(RX(theta[6])(target[1]))
-    p += Program(RY(theta[7])(target[1]))
+    p += Program(RZ(theta[6])(target[1]))
+    p += Program(RX(theta[7])(target[1]))
     p += Program(RZ(theta[8])(target[1]))
     p += Program(CNOT(target[0],target[1]))
     
