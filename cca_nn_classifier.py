@@ -4,13 +4,29 @@ from mnist_cca import get_cca_data_as_matrices
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
 
-def test_sklearn():
-    train_data, train_labels = get_cca_data_as_matrices(data_set="train")
-    validation_data, validation_labels = get_cca_data_as_matrices(data_set="validation")
+def sklearn_neural_classifier(data):
+    """ Trains and tests a neural classifier with sklearn
+    Args:
+        data: dict with four keys: train_data, train_labels, dev_data, dev_labels
+    """
+    train_data = data.get("train_data")
+    train_labels = data.get("train_labels")
+    validation_data = data.get("validation_data")
+    validation_labels = data.get("validation_labels")
     clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
     clf.fit(train_data, train_labels)
     predictions = clf.predict(validation_data)
     print(classification_report(validation_labels, predictions))
+
+def sklearn_nn_cca():
+    train_data, train_labels = get_cca_data_as_matrices(data_set="train")
+    validation_data, validation_labels = get_cca_data_as_matrices(data_set="validation")
+    data = {
+        "train_data": train_data,
+        "train_labels": train_labels,
+        "validation_data": validation_data,
+        "validation_labels": validation_labels
+    }
 
 class Config:
     def __init__(self, lr=0.01, epochs=8, hidden_layer_size=100, \
@@ -55,7 +71,7 @@ class NeuralClassifier:
         # hidden layer
         w1 = tf.get_variable(name="hidden_weights", shape=[self.config.input_size, self.config.hidden_layer_size], \
             initializer=tf.contrib.layers.xavier_initializer())
-        b1 = tf.get_variable(name="hidder_bias", shape=[self.config.hidden_layer_size], \
+        b1 = tf.get_variable(name="hidden_bias", shape=[self.config.hidden_layer_size], \
             initializer=tf.zeros_initializer())
 
         # output layer
