@@ -2,3 +2,4 @@ tensorflow
 sklearn
 numpy
 scipy
+os
