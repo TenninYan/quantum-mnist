@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from utils import normalize
+from tools import normalize
 from sklearn import svm, metrics
 from tensorflow.examples.tutorials.mnist import input_data
 from sklearn.decomposition import PCA
