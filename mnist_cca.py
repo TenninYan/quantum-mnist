@@ -31,7 +31,7 @@ def get_data(data_set, one_hot=False):
     """
     options = ["train", "test", "validation"]
     if data_set not in options:
-        print "data set must be one of train, test, or validation"
+        print("data set must be one of train, test, or validation")
         return
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=one_hot)
     if data_set == "train":
@@ -85,6 +85,20 @@ def test_normalize_scores():
         assert max(row) <= 1.0
         assert min(row) >= 0.0
     print("Rows normalized correctly")
+
+def get_cca_data_as_matrices(data_set="train"):
+    """ Normalizes data and returns data and labels as separate lists.
+
+    Args:
+        data_set: data set to retrieve
+    Returns:
+        data: list of data vectors
+        labels: list of vectors
+    """
+    X_scores, labels = CCA_reduction(data_set=data_set)
+    data = normalize_scores(X_scores)
+    return data, labels
+
 
 def get_cca_vectors(data_set="train", load_files=True):
     """ Retrieves pickled data for
