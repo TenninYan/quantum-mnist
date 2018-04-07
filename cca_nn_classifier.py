@@ -3,6 +3,8 @@ import numpy as np
 from mnist_cca import get_cca_data_as_matrices
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
+import os
+import pickle
 
 def sklearn_neural_classifier(data):
     """ Trains and tests a neural classifier with sklearn
@@ -13,6 +15,10 @@ def sklearn_neural_classifier(data):
     train_labels = data.get("train_labels")
     validation_data = data.get("validation_data")
     validation_labels = data.get("validation_labels")
+    # make sure data is correctly formatted
+    assert len(train_data) == len(train_labels)
+    assert len(validation_data) == len(validation_labels)
+
     clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
     clf.fit(train_data, train_labels)
     predictions = clf.predict(validation_data)
@@ -28,9 +34,10 @@ def sklearn_nn_cca():
         "validation_labels": validation_labels
     }
 
+
 class Config:
     def __init__(self, lr=0.01, epochs=8, hidden_layer_size=100, \
-        output_size=10, input_size=16):
+        output_size=10, input_size=16, activation="relu"):
         """
         Args:
             lr: learning rate
@@ -38,12 +45,14 @@ class Config:
             hidden_layer_size: number of neurons in hidden layer
             output_size: number of classes
             input_size: dimensionality of input vector
+            activation: one of relu or sigmoid
         """
         self.lr = lr
         self.epochs = epochs
         self.hidden_layer_size = hidden_layer_size
         self.output_size = output_size
         self.input_size = input_size
+        self.activation = activation
 
 class NeuralClassifier:
     def __init__(self, data, config):
@@ -56,6 +65,7 @@ class NeuralClassifier:
             output_size: number of classes
             input_size: dimensionality of input vector
         """
+        # make sure data is correctly formatted
         self.train_data = data.get("train_data")
         self.train_labels = data.get("train_labels")
         self.validation_data = data.get("validation_data")
@@ -63,6 +73,9 @@ class NeuralClassifier:
         self.config = config
 
     def build_and_train(self):
+        # make sure data is correctly formatted
+        assert len(self.train_data) == len(self.train_labels)
+        assert len(self.validation_data) == len(self.validation_labels)
         # placeholders
         inputs = tf.placeholder(tf.float32, shape=[None, self.config.input_size], name="inputs")
         labels = tf.placeholder(tf.int32, shape=[None, self.config.output_size], name="labels")
@@ -82,7 +95,10 @@ class NeuralClassifier:
 
         # build network
         hidden_layer = tf.add(tf.matmul(inputs, w1), b1)
-        hidden_layer = tf.nn.relu(hidden_layer)
+        if self.config.activation == "sigmoid":
+            hidden_layer = tf.nn.sigmoid(hidden_layer)
+        else:
+            hidden_layer = tf.nn.relu(hidden_layer)
         output_layer = tf.add(tf.matmul(hidden_layer, w2), b2)
 
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=labels))
@@ -136,5 +152,51 @@ def classify_with_cca_data():
     classifier = NeuralClassifier(data, config)
     classifier.build_and_train()
 
+def convert_to_one_hot(labels, num_classes):
+    """ Convert array of labels into matrix of one-hot vectors
+
+    Args:
+        labels: 1D list of labels
+        num_classes: number of classes
+    """
+    one_hots = np.zeros((len(labels), num_classes))
+    for idx, label in enumerate(labels):
+        one_hots[idx][(label - 1)] = 1
+    return one_hots
+
+def test_one_hots():
+    x = convert_to_one_hot([3, 4, 5], 5)
+    print(x)
+
+def get_ptrace_data():
+    """ Fetches ptrace data.
+
+    Returns:
+        data: dict with four keys: train_data, train_labels, validation_data, validation_labels
+    """
+    train_path = "data/test_pca_reservoir_output_concatenated_samples0thru300_reducedNonlocal_0_4_8_12_FIXED_LABELS.pickle"
+    test_path = "data/test_pca_reservoir_output_concatenated_samples0thru300_reducedNonlocal_0_4_8_12_FIXED_LABELS.pickle"
+    if os.path.isfile(train_path):
+        with open(train_path, "rb") as fp:
+            train = pickle.load(fp)
+    if os.path.isfile(test_path):
+        with open(test_path, "rb") as fp:
+            test = pickle.load(fp)
+    train_data = train[0]
+    train_labels = convert_to_one_hot(train[1], 10)
+    validation_data = test[0]
+    validation_labels = convert_to_one_hot(test[1], 10)
+    print("train data len: {} label len: {}".format(len(train[0]), len(train[1])))
+    return {
+        "train_data": train_data,
+        "train_labels": train_labels,
+        "validation_data": validation_data,
+        "validation_labels": validation_labels
+    }
+
+def classify_ptrace():
+    data = get_ptrace_data()
+    sklearn_neural_classifier(data)
+
 if __name__ == "__main__":
-    classify_with_cca_data()
+    classify_ptrace()
