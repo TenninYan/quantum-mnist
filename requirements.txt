@@ -1,0 +1,4 @@
+tensorflow
+sklearn
+numpy
+scipy
