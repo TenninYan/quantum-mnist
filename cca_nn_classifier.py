@@ -53,6 +53,7 @@ def sklearn_neural_classifier(data, h1_size=28, h2_size=39, verbose=False):
         plt.show()
     return accuracy
 
+
 def tune_params(data):
     """ Runs the neural model and experiments with the size of the hidden layers.
 
@@ -77,6 +78,7 @@ def tune_params(data):
     print("First hidden layer size      {}".format(max_h1))
     print("Second hidden layer size:    {}".format(max_h2))
     sklearn_neural_classifier(data, h1_size=max_h1, h2_size=max_h2, verbose=True)
+
 
 def plot_confusion_matrix(cm, classes=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \
     title="Classification Confusion Matrix", cmap=plt.cm.Blues):
@@ -117,6 +119,7 @@ def sklearn_nn_cca():
     }
     sklearn_neural_classifier(data)
 
+
 def test_sklearn_neural_classifier():
     """ Runs the mnist data set with the sklearn model as a sanity check.
     """
@@ -149,6 +152,7 @@ class Config:
         self.input_size = input_size
         self.activation = activation
 
+
 class NeuralClassifier:
     def __init__(self, data, config):
         """
@@ -166,6 +170,7 @@ class NeuralClassifier:
         self.validation_data = data.get("validation_data")
         self.validation_labels = data.get("validation_labels")
         self.config = config
+
 
     def build_and_train(self):
         # make sure data is correctly formatted
@@ -199,7 +204,6 @@ class NeuralClassifier:
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=labels))
         optimizer = tf.train.AdamOptimizer(learning_rate=self.config.lr).minimize(cost)
 
-
         # train
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
@@ -220,6 +224,7 @@ class NeuralClassifier:
                 labels: self.validation_labels
             })))
 
+
 def format_data(data, labels):
     """ Formats rows so that they can be fed into a nn.
 
@@ -233,6 +238,7 @@ def format_data(data, labels):
     data_transformed = [(np.expand_dims(np.array(row), axis=1)).T for row in data]
     labels_transformed = [(np.expand_dims(np.array(label), axis=1)).T for label in labels]
     return data_transformed, labels_transformed
+
 
 def classify_with_cca_data():
     """ Runs the neural classifier on vectors reduced with cca.
@@ -249,6 +255,7 @@ def classify_with_cca_data():
     classifier = NeuralClassifier(data, config)
     classifier.build_and_train()
 
+
 def convert_to_one_hot(labels, num_classes):
     """ Convert array of labels into matrix of one-hot vectors
 
@@ -261,9 +268,11 @@ def convert_to_one_hot(labels, num_classes):
         one_hots[idx][(label - 1)] = 1
     return one_hots
 
+
 def test_one_hots():
     x = convert_to_one_hot([3, 4, 5], 5)
     print(x)
+
 
 def get_ptrace_data():
     """ Fetches ptrace data.
@@ -292,6 +301,7 @@ def get_ptrace_data():
         "validation_labels": validation_labels
     }
 
+
 def test_neural_classifier():
     """ Sanity check for the tensorflow classifier with MNIST data.
     """
@@ -306,11 +316,13 @@ def test_neural_classifier():
     classifier = NeuralClassifier(data, config)
     classifier.build_and_train()
 
+
 def classify_best_ptrace():
     """ Runs the neural classifier with the best achieving hyperparameters.
     """
     data = get_ptrace_data()
     sklearn_neural_classifier(data, h1_size=28, h2_size=39, verbose=True)
+
 
 def tune_ptrace():
     """ Trains the neural model with different parameters.
@@ -318,16 +330,15 @@ def tune_ptrace():
     data = get_ptrace_data()
     tune_params(data)
 
+
 def decode_one_hot(one_hots):
-    """ Decodes one hot vector into labels
+    """ Decodes one hot vector into labels.
     """
     return [(np.argmax(row, axis=0) + 1) for row in one_hots]
+
 
 def test_decode_one_hot():
     x = convert_to_one_hot([3, 4, 5], 5)
     y = decode_one_hot(x)
     assert y == [3, 4, 5]
     print("Decoder works")
-
-if __name__ == "__main__":
-    classify_best_ptrace()

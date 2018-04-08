@@ -7,6 +7,7 @@ import pickle
 
 cca_vectors_base_path = "data/cca_reduced_vectors_normalized"
 
+
 def get_data(data_set, one_hot=False):
     """ Fetches and returns data and labels from MNIST data set.
 
