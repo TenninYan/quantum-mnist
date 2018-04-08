@@ -2,14 +2,30 @@ import tensorflow as tf
 import numpy as np
 from mnist_cca import get_cca_data_as_matrices
 from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import os
 import pickle
+from tensorflow.examples.tutorials.mnist import input_data
+from progress.bar import Bar
+import matplotlib.pyplot as plt
+import itertools
 
-def sklearn_neural_classifier(data):
+def get_mnist_counts():
+    """ Prints number of examples in each class in the training data.
+    """
+    x = [i for i in range(10)]
+    _, y = np.unique(decode_one_hot(mnist.train.labels), return_counts=True)
+    print(y)
+
+
+def sklearn_neural_classifier(data, h1_size=28, h2_size=39, verbose=False):
     """ Trains and tests a neural classifier with sklearn
     Args:
         data: dict with four keys: train_data, train_labels, dev_data, dev_labels
+        h1_size: number of neurons in first hidden layer
+        h2_size: number of neurons in second hidden layer
+    Returns:
+        accuracy: recall on test data
     """
     train_data = data.get("train_data")
     train_labels = data.get("train_labels")
@@ -19,12 +35,78 @@ def sklearn_neural_classifier(data):
     assert len(train_data) == len(train_labels)
     assert len(validation_data) == len(validation_labels)
 
-    clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
+    clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(h1_size, h2_size), random_state=1, verbose=False)
     clf.fit(train_data, train_labels)
     predictions = clf.predict(validation_data)
-    print(classification_report(validation_labels, predictions))
+
+    accuracy = accuracy_score(validation_labels, predictions)
+    if verbose == True:
+        print("-------------------")
+        print("First hidden layer size: {} second hidden layer size: {}".format(h1_size, h2_size))
+        print(accuracy)
+        print(classification_report(validation_labels, predictions))
+        print("-------------------")
+        cf = confusion_matrix(validation_labels, predictions)
+
+        plt.figure()
+        plot_confusion_matrix(cf)
+        plt.show()
+    return accuracy
+
+def tune_params(data):
+    """ Runs the neural model and experiments with the size of the hidden layers.
+
+    Args:
+        data: dict with four keys: train_data, train_labels, dev_data, dev_labels
+    """
+    max_acc = 0.0
+    max_h1 = None
+    max_h2 = None
+    total = (80.0 - 15.0) * (30.0 - 15.0)
+    bar = Bar("Processing", max=total)
+    for h1 in range(15, 80):
+        for h2 in range(15, 30):
+            acc = sklearn_neural_classifier(data, h1_size=h1, h2_size=h2)
+            if acc > max_acc:
+                max_acc = acc
+                max_h1 = h1
+                max_h2 = h2
+        bar.next()
+    bar.finish()
+    print("Accuracy:                    {}".format(max_acc))
+    print("First hidden layer size      {}".format(max_h1))
+    print("Second hidden layer size:    {}".format(max_h2))
+    sklearn_neural_classifier(data, h1_size=max_h1, h2_size=max_h2, verbose=True)
+
+def plot_confusion_matrix(cm, classes=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], \
+    title="Classification Confusion Matrix", cmap=plt.cm.Blues):
+    """ Plots a confusion matrix of the data.
+
+    Args:
+        cm: confusion matrix generated with sklearn.metrics
+        classes: list of all classes
+    """
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+    fmt = 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
 
 def sklearn_nn_cca():
+    """ Runs the cca reduced vectors with sklearn neural model.
+    """
     train_data, train_labels = get_cca_data_as_matrices(data_set="train")
     validation_data, validation_labels = get_cca_data_as_matrices(data_set="validation")
     data = {
@@ -33,6 +115,19 @@ def sklearn_nn_cca():
         "validation_data": validation_data,
         "validation_labels": validation_labels
     }
+    sklearn_neural_classifier(data)
+
+def test_sklearn_neural_classifier():
+    """ Runs the mnist data set with the sklearn model as a sanity check.
+    """
+    mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+    data = {
+        "train_data": mnist.train.images,
+        "train_labels": mnist.train.labels,
+        "validation_data": mnist.validation.images,
+        "validation_labels": mnist.validation.labels,
+    }
+    sklearn_neural_classifier(data)
 
 
 class Config:
@@ -140,6 +235,8 @@ def format_data(data, labels):
     return data_transformed, labels_transformed
 
 def classify_with_cca_data():
+    """ Runs the neural classifier on vectors reduced with cca.
+    """
     train_data, train_labels = get_cca_data_as_matrices(data_set="train")
     validation_data, validation_labels = get_cca_data_as_matrices(data_set="validation")
     data = {
@@ -183,9 +280,10 @@ def get_ptrace_data():
         with open(test_path, "rb") as fp:
             test = pickle.load(fp)
     train_data = train[0]
-    train_labels = convert_to_one_hot(train[1], 10)
+    train_labels = train[1]
     validation_data = test[0]
-    validation_labels = convert_to_one_hot(test[1], 10)
+    validation_labels = test[1]
+
     print("train data len: {} label len: {}".format(len(train[0]), len(train[1])))
     return {
         "train_data": train_data,
@@ -194,9 +292,42 @@ def get_ptrace_data():
         "validation_labels": validation_labels
     }
 
-def classify_ptrace():
+def test_neural_classifier():
+    """ Sanity check for the tensorflow classifier with MNIST data.
+    """
+    mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+    data = {
+        "train_data": mnist.train.images,
+        "train_labels": mnist.train.labels,
+        "validation_data": mnist.validation.images,
+        "validation_labels": mnist.validation.labels,
+    }
+    config = Config(epochs=5, input_size=784)
+    classifier = NeuralClassifier(data, config)
+    classifier.build_and_train()
+
+def classify_best_ptrace():
+    """ Runs the neural classifier with the best achieving hyperparameters.
+    """
     data = get_ptrace_data()
-    sklearn_neural_classifier(data)
+    sklearn_neural_classifier(data, h1_size=28, h2_size=39, verbose=True)
+
+def tune_ptrace():
+    """ Trains the neural model with different parameters.
+    """
+    data = get_ptrace_data()
+    tune_params(data)
+
+def decode_one_hot(one_hots):
+    """ Decodes one hot vector into labels
+    """
+    return [(np.argmax(row, axis=0) + 1) for row in one_hots]
+
+def test_decode_one_hot():
+    x = convert_to_one_hot([3, 4, 5], 5)
+    y = decode_one_hot(x)
+    assert y == [3, 4, 5]
+    print("Decoder works")
 
 if __name__ == "__main__":
-    classify_ptrace()
+    classify_best_ptrace()

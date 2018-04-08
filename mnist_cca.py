@@ -7,18 +7,6 @@ import pickle
 
 cca_vectors_base_path = "data/cca_reduced_vectors_normalized"
 
-def get_train_data(one_hot=False):
-    """ Fetches and returns training data and labels from MNIST data set.
-
-    Args:
-        one_hot: whether to generate one-hot labels
-    Returns:
-        train_data: (55000, 784) matrix
-        train_labels: (55000, 9) matrix (labels are one-hot)
-    """
-    mnist = input_data.read_data_sets("MNIST_data/", one_hot=one_hot)
-
-
 def get_data(data_set, one_hot=False):
     """ Fetches and returns data and labels from MNIST data set.
 
