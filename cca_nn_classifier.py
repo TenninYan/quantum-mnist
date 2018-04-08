@@ -134,8 +134,8 @@ def test_sklearn_neural_classifier():
 
 
 class Config:
-    def __init__(self, lr=0.01, epochs=8, hidden_layer_size=100, \
-        output_size=10, input_size=16, activation="relu"):
+    def __init__(self, lr=0.01, epochs=8, hidden_layer_size=28, \
+        hidden_layer_2_size=39 ,output_size=10, input_size=16, activation="relu"):
         """
         Args:
             lr: learning rate
@@ -148,6 +148,7 @@ class Config:
         self.lr = lr
         self.epochs = epochs
         self.hidden_layer_size = hidden_layer_size
+        self.hidden_layer_2_size = hidden_layer_2_size
         self.output_size = output_size
         self.input_size = input_size
         self.activation = activation
@@ -187,10 +188,16 @@ class NeuralClassifier:
         b1 = tf.get_variable(name="hidden_bias", shape=[self.config.hidden_layer_size], \
             initializer=tf.zeros_initializer())
 
-        # output layer
+        # h2
         w2 = tf.get_variable(name="output_weights", shape=[self.config.hidden_layer_size, \
+            self.config.hidden_layer_2_size], initializer=tf.contrib.layers.xavier_initializer())
+        b2 = tf.get_variable(name="outpus_bias", shape=[self.config.hidden_layer_2_size], \
+            initializer=tf.zeros_initializer())
+
+        # output layer
+        w3 = tf.get_variable(name="output_weights", shape=[self.config.hidden_layer_2_size, \
             self.config.output_size], initializer=tf.contrib.layers.xavier_initializer())
-        b2 = tf.get_variable(name="outpus_bias", shape=[self.config.output_size], \
+        b3 = tf.get_variable(name="outpus_bias", shape=[self.config.output_size], \
             initializer=tf.zeros_initializer())
 
         # build network
@@ -199,7 +206,15 @@ class NeuralClassifier:
             hidden_layer = tf.nn.sigmoid(hidden_layer)
         else:
             hidden_layer = tf.nn.relu(hidden_layer)
-        output_layer = tf.add(tf.matmul(hidden_layer, w2), b2)
+
+        hidden_layer_2 = tf.add(tf.matmul(hidden_layer, w2), b2)
+        if self.config.activation == "sigmoid":
+            hidden_layer_2 = tf.nn.sigmoid(hidden_layer_2)
+        else:
+            hidden_layer_2 = tf.nn.relu(hidden_layer_2)
+
+        output_layer = tf.add(tf.matmul(hidden_layer, w3), b3)
+
 
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=labels))
         optimizer = tf.train.AdamOptimizer(learning_rate=self.config.lr).minimize(cost)
@@ -316,6 +331,11 @@ def test_neural_classifier():
     classifier = NeuralClassifier(data, config)
     classifier.build_and_train()
 
+def ptrace_neural_classifier():
+    config = Config(epochs=5)
+    data = get_ptrace_data()
+    classifier = NeuralClassifier(data, config)
+    classifier.build_and_train()
 
 def classify_best_ptrace():
     """ Runs the neural classifier with the best achieving hyperparameters.
@@ -342,3 +362,6 @@ def test_decode_one_hot():
     y = decode_one_hot(x)
     assert y == [3, 4, 5]
     print("Decoder works")
+
+if __name__ == "__main__":
+    ptrace_neural_classifier()
