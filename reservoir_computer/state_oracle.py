@@ -18,6 +18,8 @@ import numpy as np
 from numpy import pi, linspace
 from numpy.random import rand
 import pickle as pickle
+import traceback
+
 
 N_qubit = 16
 N_unit_theta = 15
@@ -111,11 +113,14 @@ def write_reservoir_output(
     train_filename='../train_pca_reservoir_output.pickle',
     test_filename='../test_pca_reservoir_output.pickle'
 ):
-    with open(train_filename, 'wb') as outfile:
-        pickle.dump(train, outfile)
+    if train is not None:
+        with open(train_filename, 'wb') as outfile:
+            pickle.dump(train, outfile)
 
-    with open(test_filename, 'wb') as outfile:
-        pickle.dump(test, outfile)
+    if test is not None:
+        with open(test_filename, 'wb') as outfile:
+            pickle.dump(test, outfile)
+
 
 def reservoir_compute(sample, reservoir_circuit, qcircuit_callback):
     '''
@@ -148,10 +153,9 @@ if __name__ == '__main__':
     num_train_samples = train[0].shape[0]
     num_test_samples = test[0].shape[0]
 
-    # for debugging
-    num_train_samples = min(20, num_train_samples)
-    num_test_samples = min(20, num_test_samples)
-
+    # for debugging, limit job sizes
+    num_train_samples = min(900, num_train_samples)
+    num_test_samples = min(300, num_test_samples)
 
     # run all training & testing samples through reservoir
     from tqdm import tqdm
@@ -159,35 +163,60 @@ if __name__ == '__main__':
     train_outputs = []
     print('generating training data reservoir output...')
     for j in tqdm(range(num_train_samples)):
-        train_outputs.append(
-            reservoir_compute(
-                train[0][j],
-                p_reservoir,
-                generate_input_gates
-            )
-        )
-
-    test_outputs = []
-    print('generating test data reservoir output...')
-    for j in tqdm(range(num_test_samples)):
-        test_outputs.append(
-            reservoir_compute(
-                test[0][j],
-                p_reservoir,
-                generate_input_gates
-            )
-        )
-
+        j += 600
+        incomplete = True
+        while incomplete:
+            try:
+                outputs = reservoir_compute(
+                    train[0][j],
+                    p_reservoir,
+                    generate_input_gates
+                )
+                train_outputs.append(outputs)
+                incomplete = False
+            except:
+                print('failed forest request:')
+                traceback.print_exc()
+                print('...retrying...')
+            
     # save outputs to disk
     write_reservoir_output(
         [
             np.array(train_outputs),
-            train[1] # labels
+            train[1][:len(train_outputs)] # labels
         ],
+        None,
+        train_filename='../train_pca_reservoir_output_samples600thru1500.pickle'
+    )
+
+
+    test_outputs = []
+    print('generating test data reservoir output...')
+    for j in tqdm(range(num_test_samples)):
+        j += 300
+        incomplete = True
+        while incomplete:
+            try:
+                outputs = reservoir_compute(
+                    test[0][j],
+                    p_reservoir,
+                    generate_input_gates
+                )
+                test_outputs.append(outputs)
+                incomplete = False
+            except:
+                print('failed forest request:')
+                traceback.print_exc()
+                print('...retrying...')
+
+    # save outputs to disk
+    write_reservoir_output(
+        None,
         [
             np.array(test_outputs),
-            test[1] # labels
-        ]
+            test[1][:len(test_outputs)] # labels
+        ],
+        test_filename='../test_pca_reservoir_output_samples300thru600.pickle'
     )
 
 
@@ -203,3 +232,5 @@ if __name__ == '__main__':
 # 
 # # Define reservoir oracle as program
 # p = Program(H(0))
+
+
