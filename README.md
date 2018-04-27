@@ -1,10 +1,11 @@
 # quantum-mnist
-Classify MNIST using Quantum Machine Learning
+Classify MNIST using Quantum Machine Learning. This project was built during the Rigetti Hackathon 2018.
 
-This is what we made in Rigetti Hackathon
+The model reduces MNIST data to 16 dimensions using PCA, applies reservoir computing to the output, and finally classifies the data using a neural network.
 
-## What it does
-Reduce dimenssion of MNIST to 16 dimensions using PCA
-Put that output to reservoir computing and classify using neural network.
+## Running the model
+First, make sure to get an API key for the rigetti forest API. After installing the remaining packages, run
 
-## How to Use
+`$ python cca_nn_classifier.py`
+
+This will run the model end to end.
