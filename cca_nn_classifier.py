@@ -189,9 +189,9 @@ class NeuralClassifier:
             initializer=tf.zeros_initializer())
 
         # h2
-        w2 = tf.get_variable(name="output_weights", shape=[self.config.hidden_layer_size, \
+        w2 = tf.get_variable(name="hidden_weights_2", shape=[self.config.hidden_layer_size, \
             self.config.hidden_layer_2_size], initializer=tf.contrib.layers.xavier_initializer())
-        b2 = tf.get_variable(name="outpus_bias", shape=[self.config.hidden_layer_2_size], \
+        b2 = tf.get_variable(name="hidden_bias_2", shape=[self.config.hidden_layer_2_size], \
             initializer=tf.zeros_initializer())
 
         # output layer
@@ -213,7 +213,7 @@ class NeuralClassifier:
         else:
             hidden_layer_2 = tf.nn.relu(hidden_layer_2)
 
-        output_layer = tf.add(tf.matmul(hidden_layer, w3), b3)
+        output_layer = tf.add(tf.matmul(hidden_layer_2, w3), b3)
 
 
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=labels))
@@ -332,8 +332,10 @@ def test_neural_classifier():
     classifier.build_and_train()
 
 def ptrace_neural_classifier():
-    config = Config(epochs=5)
+    config = Config(epochs=100)
     data = get_ptrace_data()
+    data["train_labels"] = convert_to_one_hot(data.get("train_labels"), 10)
+    data["validation_labels"] = convert_to_one_hot(data.get("validation_labels"), 10)
     classifier = NeuralClassifier(data, config)
     classifier.build_and_train()
 
@@ -364,4 +366,4 @@ def test_decode_one_hot():
     print("Decoder works")
 
 if __name__ == "__main__":
-    ptrace_neural_classifier()
+    classify_best_ptrace()
